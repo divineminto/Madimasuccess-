@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AutoÉcole Pro — Gestion candidats</title>
+<link rel="manifest" href="./manifest.json"/>
+<meta name="theme-color" content="#1A2340"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="AE Pro"/>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+:root{
+  --navy:#1A2340;--navy-mid:#253057;--blue:#3A6FD8;--blue-light:#EAF0FB;
+  --green:#2DBF7E;--green-light:#E6F9F1;--red:#E5405A;--red-light:#FDE8EC;
+  --amber:#F5A623;--amber-light:#FEF3E2;
+  --grey-100:#F5F6FA;--grey-200:#E8EAF0;--grey-400:#9AA3BC;--grey-700:#4A5270;
+  --white:#fff;--text:#1A2340;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--grey-100);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+header{background:var(--navy);color:#fff;padding:0 1.5rem;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.2)}
+.logo{display:flex;align-items:center;gap:8px;font-size:1.15rem;font-weight:700;letter-spacing:-.02em}
+.logo em{color:var(--blue);font-style:normal}
+nav{background:var(--navy-mid);display:flex;padding:0 1.5rem;border-bottom:2px solid rgba(255,255,255,.06)}
+nav button{background:none;border:none;cursor:pointer;color:var(--grey-400);font-family:'DM Sans',sans-serif;font-size:.86rem;font-weight:500;padding:.7rem 1rem;border-bottom:3px solid transparent;transition:color .15s,border-color .15s}
+nav button.active{color:#fff;border-bottom-color:var(--blue)}
+nav button:hover:not(.active){color:#c8d0e8}
+main{flex:1;padding:1.5rem;max-width:1340px;margin:0 auto;width:100%}
+.view{display:none}.view.active{display:block}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:.85rem;margin-bottom:1.5rem}
+.stat-card{background:#fff;border-radius:12px;padding:1rem 1.2rem;border:1px solid var(--grey-200)}
+.stat-card .lbl{font-size:.7rem;color:var(--grey-400);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}
+.stat-card .val{font-size:1.8rem;font-weight:700;line-height:1.1}
+.stat-card .sub{font-size:.73rem;color:var(--grey-400);margin-top:2px}
+.blue .val{color:var(--blue)}.green .val{color:var(--green)}.red .val{color:var(--red)}.amber .val{color:var(--amber)}
+
+/* CARD */
+.card{background:#fff;border-radius:14px;border:1px solid var(--grey-200);overflow:hidden;margin-bottom:1rem}
+.card-header{padding:.85rem 1.2rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--grey-200);flex-wrap:wrap;gap:.6rem}
+.card-header h2{font-size:.9rem;font-weight:600}
+.search-box{display:flex;align-items:center;gap:6px;background:var(--grey-100);border:1px solid var(--grey-200);border-radius:8px;padding:.32rem .7rem}
+.search-box input{border:none;background:none;outline:none;font-family:'DM Sans',sans-serif;font-size:.83rem;color:var(--text);width:185px}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse}
+thead th{padding:.6rem .85rem;text-align:left;font-size:.7rem;font-weight:600;color:var(--grey-400);text-transform:uppercase;letter-spacing:.07em;background:var(--grey-100);border-bottom:1px solid var(--grey-200);white-space:nowrap}
+tbody tr{border-bottom:1px solid var(--grey-200);transition:background .1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--blue-light)}
+td{padding:.7rem .85rem;font-size:.83rem;vertical-align:middle}
+.name{font-weight:600}.sub{font-size:.73rem;color:var(--grey-400)}
+
+/* BADGES */
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.71rem;font-weight:600;white-space:nowrap}
+.badge.en-cours{background:var(--blue-light);color:var(--blue)}
+.badge.reussi{background:var(--green-light);color:var(--green)}
+.badge.echoue{background:var(--red-light);color:var(--red)}
+.badge.suspendu{background:var(--amber-light);color:var(--amber)}
+.badge.oui{background:var(--green-light);color:var(--green)}
+.badge.non{background:var(--red-light);color:var(--red)}
+.badge.attente{background:var(--amber-light);color:var(--amber)}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:.42rem .95rem;border-radius:8px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.84rem;font-weight:600;transition:opacity .15s,transform .1s}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--blue);color:#fff}.btn-primary:hover{opacity:.88}
+.btn-ghost{background:var(--grey-200);color:var(--grey-700)}.btn-ghost:hover{background:#c5c9d6}
+.btn-danger{background:var(--red);color:#fff}.btn-danger:hover{opacity:.88}
+.action-btn{background:none;border:none;cursor:pointer;color:var(--grey-400);padding:4px;border-radius:6px;transition:color .15s,background .15s;display:inline-flex;align-items:center}
+.action-btn:hover{color:var(--blue);background:var(--blue-light)}
+.action-btn.del:hover{color:var(--red);background:var(--red-light)}
+
+/* OVERLAY */
+.overlay{display:none;position:fixed;inset:0;background:rgba(15,20,40,.62);z-index:200;align-items:center;justify-content:center;padding:1rem}
+.overlay.open{display:flex}
+.modal{background:#fff;border-radius:16px;width:100%;max-width:680px;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.modal.wide{max-width:800px}
+.modal-header{padding:1rem 1.3rem;border-bottom:1px solid var(--grey-200);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#fff;z-index:1}
+.modal-header h3{font-size:.98rem;font-weight:700}
+.modal-body{padding:1.3rem}
+.modal-footer{padding:.85rem 1.3rem;border-top:1px solid var(--grey-200);display:flex;justify-content:flex-end;gap:.5rem}
+
+/* FORM */
+.fst{font-size:.72rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.08em;margin:1.1rem 0 .6rem;padding-bottom:.32rem;border-bottom:1.5px solid var(--blue-light)}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg label{font-size:.76rem;font-weight:600;color:var(--grey-700)}
+.fg input,.fg select,.fg textarea{border:1.5px solid var(--grey-200);border-radius:8px;padding:.42rem .68rem;font-family:'DM Sans',sans-serif;font-size:.83rem;color:var(--text);outline:none;transition:border-color .15s;width:100%}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--blue)}
+.fg textarea{resize:vertical;min-height:58px}
+.fg.full{grid-column:1/-1}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+
+/* PAIE SUMMARY */
+.paie-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:.65rem;margin-bottom:.8rem}
+.pb{background:var(--grey-100);border-radius:10px;padding:.75rem 1rem;text-align:center}
+.pb .pb-l{font-size:.68rem;font-weight:600;color:var(--grey-400);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+.pb .pb-v{font-size:1.15rem;font-weight:700;font-family:'DM Mono',monospace}
+.pb.green .pb-v{color:var(--green)}.pb.red .pb-v{color:var(--red)}.pb.blue .pb-v{color:var(--blue)}
+
+/* VERSEMENTS */
+.v-list{display:flex;flex-direction:column;gap:5px;margin-bottom:.55rem}
+.v-item{background:var(--grey-100);border-radius:8px;padding:.5rem .85rem;display:flex;justify-content:space-between;align-items:center;font-size:.82rem}
+.v-meta{font-size:.73rem;color:var(--grey-400)}
+.mono{font-family:'DM Mono',monospace;font-weight:500}
+.add-row{display:flex;gap:.45rem;flex-wrap:wrap;align-items:center}
+.add-row input,.add-row select{border:1.5px solid var(--grey-200);border-radius:7px;padding:.38rem .6rem;font-size:.81rem;font-family:'DM Sans',sans-serif;outline:none;color:var(--text);flex:1;min-width:75px}
+.add-row input:focus,.add-row select:focus{border-color:var(--blue)}
+.add-row .btn{flex-shrink:0;padding:.36rem .75rem;font-size:.81rem}
+
+/* EXAM BLOCKS */
+.exam-block{border-radius:10px;padding:.9rem}
+.exam-block.code{background:var(--blue-light)}
+.exam-block.conduite{background:var(--green-light)}
+.eb-title{font-size:.76rem;font-weight:700;margin-bottom:.6rem}
+.exam-block.code .eb-title{color:var(--blue)}
+.exam-block.conduite .eb-title{color:var(--green)}
+
+/* DETAIL */
+.det-head{display:flex;align-items:center;gap:1rem;margin-bottom:1.2rem}
+.avatar{width:48px;height:48px;border-radius:50%;background:var(--blue);color:#fff;font-size:1.1rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.det-head h2{font-size:1.2rem;font-weight:700}
+.det-head .meta{font-size:.8rem;color:var(--grey-400);margin-top:2px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:.65rem;margin-bottom:.9rem}
+.info-block{background:var(--grey-100);border-radius:9px;padding:.75rem .95rem}
+.ib-l{font-size:.67rem;font-weight:600;color:var(--grey-400);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}
+.ib-v{font-size:.85rem;font-weight:500}
+.sec-title{font-size:.86rem;font-weight:600;color:var(--grey-700);margin:1rem 0 .55rem;display:flex;align-items:center;gap:7px}
+.sec-title::after{content:'';flex:1;height:1px;background:var(--grey-200)}
+.tl-item{display:flex;justify-content:space-between;align-items:center;background:var(--grey-100);border-radius:8px;padding:.48rem .85rem;font-size:.82rem;margin-bottom:4px}
+.tl-meta{color:var(--grey-400);font-size:.73rem}
+.empty-msg{font-size:.8rem;color:var(--grey-400);padding:.25rem 0}
+
+@media(max-width:640px){
+  main{padding:1rem}
+  .fgrid,.info-grid,.paie-sum{grid-template-columns:1fr}
+  table{display:block;overflow-x:auto}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🚗 <em>Auto</em>École<span style="color:#fff;font-weight:300;margin-left:3px">Pro</span></div>
+  <button class="btn btn-primary" onclick="openAddModal()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Nouveau candidat
+  </button>
+</header>
+
+<nav>
+  <button class="active" onclick="showView('dashboard',this)">📊 Tableau de bord</button>
+  <button onclick="showView('candidats',this)">👤 Candidats</button>
+</nav>
+
+<main>
+  <!-- DASHBOARD -->
+  <div id="view-dashboard" class="view active">
+    <div class="stats-grid" id="stats-grid"></div>
+    <p class="sec-title">Aperçu des candidats</p>
+    <div class="card">
+      <div class="card-header">
+        <h2>Tous les candidats</h2>
+        <div class="search-box">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="dash-search" placeholder="Rechercher…" oninput="renderDashTable()">
+        </div>
+      </div>
+      <table><thead><tr>
+        <th>Candidat</th><th>Localité</th><th>Inscription</th><th>Code</th><th>Conduite</th><th>Tarif</th><th>Versé</th><th>Reste</th><th></th>
+      </tr></thead><tbody id="dash-tbody"></tbody></table>
+    </div>
+  </div>
+
+  <!-- CANDIDATS -->
+  <div id="view-candidats" class="view">
+    <div class="card">
+      <div class="card-header">
+        <h2>Liste des candidats</h2>
+        <div style="display:flex;gap:.45rem;flex-wrap:wrap;align-items:center">
+          <div class="search-box">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="cand-search" placeholder="Rechercher…" oninput="renderCandTable()">
+          </div>
+          <select id="cand-filter" onchange="renderCandTable()" style="border:1.5px solid var(--grey-200);border-radius:8px;padding:.36rem .62rem;font-size:.82rem;font-family:'DM Sans',sans-serif;outline:none">
+            <option value="">Tous les statuts</option>
+            <option value="en-cours">En cours</option>
+            <option value="reussi">Réussi</option>
+            <option value="echoue">Échoué</option>
+            <option value="suspendu">Suspendu</option>
+          </select>
+        </div>
+      </div>
+      <table><thead><tr>
+        <th>Candidat</th><th>Tél WhatsApp</th><th>Localité</th><th>Recommandé par</th><th>Inscription</th><th>Code</th><th>Conduite</th><th>Tarif</th><th>Versé</th><th>Reste</th><th>Statut</th><th>Actions</th>
+      </tr></thead><tbody id="cand-tbody"></tbody></table>
+    </div>
+  </div>
+</main>
+
+<!-- ═══ MODAL AJOUT / MODIF ═══ -->
+<div class="overlay" id="modal-overlay">
+  <div class="modal wide">
+    <div class="modal-header">
+      <h3 id="modal-title">Nouveau candidat</h3>
+      <button class="action-btn" onclick="closeModal()">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+
+      <p class="fst">Informations personnelles</p>
+      <div class="fgrid">
+        <div class="fg"><label>Nom *</label><input id="f-nom" type="text" placeholder="DUPONT"/></div>
+        <div class="fg"><label>Prénom(s) *</label><input id="f-prenom" type="text" placeholder="Jean Paul"/></div>
+        <div class="fg"><label>Téléphone WhatsApp</label><input id="f-tel" type="tel" placeholder="+225 07 00 00 00 00"/></div>
+        <div class="fg"><label>Localité</label><input id="f-localite" type="text" placeholder="Cocody, Abidjan"/></div>
+        <div class="fg full"><label>Recommandé par</label><input id="f-recommande" type="text" placeholder="Nom du parrain / référent"/></div>
+      </div>
+
+      <p class="fst">Dossier & Dates clés</p>
+      <div class="fgrid">
+        <div class="fg">
+          <label>Inscription</label>
+          <select id="f-inscription-ok">
+            <option value="oui">✅ OK — Inscrit</option>
+            <option value="attente">⏳ En attente</option>
+            <option value="non">❌ Non inscrit</option>
+          </select>
+        </div>
+        <div class="fg"><label>Date d'inscription</label><input id="f-date-inscription" type="date"/></div>
+        <div class="fg"><label>Date visite médicale</label><input id="f-date-visite" type="date"/></div>
+        <div class="fg"><label>Date début formation</label><input id="f-date-formation" type="date"/></div>
+        <div class="fg">
+          <label>Statut général</label>
+          <select id="f-statut">
+            <option value="en-cours">En cours</option>
+            <option value="reussi">Réussi</option>
+            <option value="echoue">Échoué</option>
+            <option value="suspendu">Suspendu</option>
+          </select>
+        </div>
+        <div class="fg full"><label>Notes / Observations</label><textarea id="f-notes" placeholder="Points à travailler, remarques…"></textarea></div>
+      </div>
+
+      <p class="fst">Examens</p>
+      <div class="fgrid">
+        <div class="exam-block code">
+          <div class="eb-title">📝 EXAMEN DU CODE</div>
+          <div class="fg" style="margin-bottom:.5rem"><label>Date de l'examen</label><input id="f-code-date" type="date"/></div>
+          <div class="fg">
+            <label>Résultat</label>
+            <select id="f-code-result">
+              <option value="attente">⏳ En attente</option>
+              <option value="reussi">✅ Réussi</option>
+              <option value="echoue">❌ Échoué</option>
+            </select>
+          </div>
+        </div>
+        <div class="exam-block conduite">
+          <div class="eb-title">🚗 EXAMEN DE CONDUITE</div>
+          <div class="fg" style="margin-bottom:.5rem"><label>Date de l'examen</label><input id="f-conduite-date" type="date"/></div>
+          <div class="fg">
+            <label>Résultat</label>
+            <select id="f-conduite-result">
+              <option value="attente">⏳ En attente</option>
+              <option value="reussi">✅ Réussi</option>
+              <option value="echoue">❌ Échoué</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <p class="fst">Paiements</p>
+      <div class="fgrid" style="margin-bottom:.9rem">
+        <div class="fg">
+          <label>Tarif total de la formation (FCFA)</label>
+          <input id="f-tarif" type="number" min="0" step="0.01" placeholder="0.00" oninput="updatePaieSummary()"/>
+        </div>
+        <div class="fg">
+          <label>Commission reversée à l'auto-école partenaire (FCFA)</label>
+          <input id="f-commission" type="number" min="0" step="0.01" placeholder="0.00"/>
+        </div>
+      </div>
+
+      <!-- VERSEMENTS AUTO-ÉCOLE -->
+      <div style="font-size:.78rem;font-weight:600;color:var(--grey-700);margin-bottom:.45rem;margin-top:.3rem">Versements à l'auto-école partenaire</div>
+      <div class="paie-sum">
+        <div class="pb blue"><div class="pb-l">Commission due</div><div class="pb-v" id="ps-comm-due">0 FCFA</div></div>
+        <div class="pb green"><div class="pb-l">Versé à l'auto-école</div><div class="pb-v" id="ps-comm-verse">0 FCFA</div></div>
+        <div class="pb red"><div class="pb-l">Reste à verser</div><div class="pb-v" id="ps-comm-reste">0 FCFA</div></div>
+      </div>
+      <div class="v-list" id="versements-ae-list"></div>
+      <div class="add-row">
+        <input type="date" id="nav-date"/>
+        <input type="number" id="nav-montant" placeholder="Montant (FCFA)" min="0" step="1" style="max-width:155px"/>
+        <input type="text" id="nav-label" placeholder="Libellé (ex: 1er versement AE)" style="flex:2"/>
+        <button class="btn btn-ghost" onclick="addVersementAE()">+ Ajouter</button>
+      </div>
+
+      <div style="font-size:.78rem;font-weight:600;color:var(--grey-700);margin-bottom:.45rem;margin-top:1rem">Suivi des versements du candidat</div>
+      <div class="paie-sum">
+        <div class="pb blue"><div class="pb-l">Tarif total</div><div class="pb-v" id="ps-tarif">0 FCFA</div></div>
+        <div class="pb green"><div class="pb-l">Total versé</div><div class="pb-v" id="ps-verse">0 FCFA</div></div>
+        <div class="pb red"><div class="pb-l">Reste à payer</div><div class="pb-v" id="ps-reste">0 FCFA</div></div>
+      </div>
+      <div class="v-list" id="versements-list"></div>
+      <div class="add-row">
+        <input type="date" id="nv-date"/>
+        <input type="number" id="nv-montant" placeholder="Montant (FCFA)" min="0" step="0.01" style="max-width:135px"/>
+        <input type="text" id="nv-label" placeholder="Libellé (ex: 1er versement)" style="flex:2"/>
+        <button class="btn btn-ghost" onclick="addVersement()">+ Ajouter</button>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="saveCandidat()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL DÉTAIL ═══ -->
+<div class="overlay" id="detail-overlay">
+  <div class="modal wide">
+    <div class="modal-header">
+      <h3>Fiche candidat</h3>
+      <button class="action-btn" onclick="closeDetail()">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="detail-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeDetail()">Fermer</button>
+      <button class="btn btn-primary" id="det-edit-btn">✏️ Modifier</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CONFIRM DELETE ═══ -->
+<div class="overlay" id="confirm-overlay">
+  <div class="modal" style="max-width:390px">
+    <div class="modal-header"><h3>Confirmer la suppression</h3></div>
+    <div class="modal-body"><p style="font-size:.88rem;color:var(--grey-700);line-height:1.5">Cette action est irréversible. Voulez-vous vraiment supprimer ce candidat et toutes ses données ?</p></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="document.getElementById('confirm-overlay').classList.remove('open')">Annuler</button>
+      <button class="btn btn-danger" id="confirm-del-btn">Supprimer définitivement</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── ÉTAT ──────────────────────────────────────────────────────
+let candidats = JSON.parse(localStorage.getItem('ae_pro_v2') || '[]');
+let editingId = null;
+let tmpVersements = [];
+let tmpVersementsAE = [];
+
+const save = () => localStorage.setItem('ae_pro_v2', JSON.stringify(candidats));
+const uid  = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
+const fmtE = v  => (parseFloat(v)||0).toLocaleString('fr-FR') + ' FCFA';
+
+// ── NAV ───────────────────────────────────────────────────────
+function showView(name, btn) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  btn.classList.add('active');
+  renderAll();
+}
+function renderAll() { renderStats(); renderDashTable(); renderCandTable(); }
+
+// ── CALCULS ───────────────────────────────────────────────────
+function totalVerse(c) { return (c.versements||[]).reduce((s,v)=>s+(parseFloat(v.montant)||0),0); }
+function reste(c)       { return Math.max(0,(parseFloat(c.tarif)||0)-totalVerse(c)); }
+
+// ── STATS ─────────────────────────────────────────────────────
+function renderStats() {
+  const n  = candidats.length;
+  const ec = candidats.filter(c=>c.statut==='en-cours').length;
+  const ok = candidats.filter(c=>c.statut==='reussi').length;
+  const ko = candidats.filter(c=>c.statut==='echoue').length;
+  const totTarif  = candidats.reduce((s,c)=>s+(parseFloat(c.tarif)||0),0);
+  const totVerse  = candidats.reduce((s,c)=>s+totalVerse(c),0);
+  const totReste  = candidats.reduce((s,c)=>s+reste(c),0);
+  const totComm   = candidats.reduce((s,c)=>s+(parseFloat(c.commission)||0),0);
+
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-card blue"><div class="lbl">Candidats</div><div class="val">${n}</div><div class="sub">inscrits</div></div>
+    <div class="stat-card blue"><div class="lbl">En cours</div><div class="val">${ec}</div><div class="sub">en formation</div></div>
+    <div class="stat-card green"><div class="lbl">Réussis</div><div class="val">${ok}</div><div class="sub">${n?Math.round(ok/n*100):0}% de taux</div></div>
+    <div class="stat-card red"><div class="lbl">Échoués</div><div class="val">${ko}</div></div>
+    <div class="stat-card green"><div class="lbl">Total encaissé</div><div class="val" style="font-size:1.25rem">${totVerse.toLocaleString("fr-FR")} FCFA</div><div class="sub">sur ${totTarif.toLocaleString("fr-FR")} FCFA facturés</div></div>
+    <div class="stat-card red"><div class="lbl">Reste à encaisser</div><div class="val" style="font-size:1.25rem">${totReste.toLocaleString("fr-FR")} FCFA</div></div>
+    <div class="stat-card amber"><div class="lbl">Commissions auto-école</div><div class="val" style="font-size:1.25rem">${totComm.toLocaleString("fr-FR")} FCFA</div></div>
+  `;
+}
+
+// ── LABELS & BADGES ───────────────────────────────────────────
+const sLabel = {'en-cours':'En cours','reussi':'Réussi','echoue':'Échoué','suspendu':'Suspendu'};
+const iLabel = {'oui':'Inscrit','non':'Non inscrit','attente':'En attente'};
+
+function bExam(r) {
+  if (!r || r==='attente') return '<span class="badge attente">En attente</span>';
+  return `<span class="badge ${r==='reussi'?'reussi':'echoue'}">${r==='reussi'?'Réussi':'Échoué'}</span>`;
+}
+function bInsc(v) {
+  const cl = {oui:'oui',non:'non',attente:'attente'};
+  return `<span class="badge ${cl[v]||'attente'}">${iLabel[v]||'—'}</span>`;
+}
+
+// ── ROW ───────────────────────────────────────────────────────
+function rowHTML(c, actions) {
+  const tv = totalVerse(c), rp = reste(c);
+  const ini = ((c.prenom||'?')[0]+(c.nom||'?')[0]).toUpperCase();
+  return `<tr>
+    <td><div style="display:flex;align-items:center;gap:8px">
+      <div class="avatar" style="width:30px;height:30px;font-size:.76rem">${ini}</div>
+      <div><div class="name">${c.prenom} ${c.nom}</div></div>
+    </div></td>
+    <td>${c.tel||'—'}</td>
+    <td>${c.localite||'—'}</td>
+    <td>${c.recommande||'—'}</td>
+    <td>${bInsc(c.inscriptionOk)}<div class="sub">${c.dateInscription||''}</div></td>
+    <td>${bExam(c.codeResult)}<div class="sub">${c.codeDate||''}</div></td>
+    <td>${bExam(c.conduiteResult)}<div class="sub">${c.conduiteDate||''}</div></td>
+    <td><span class="mono">${fmtE(c.tarif)}</span></td>
+    <td><span class="mono" style="color:var(--green)">${fmtE(tv)}</span></td>
+    <td><span class="mono" style="color:${rp>0?'var(--red)':'var(--green)'};font-weight:700">${fmtE(rp)}</span></td>
+    <td><span class="badge ${c.statut}">${sLabel[c.statut]||c.statut}</span></td>
+    ${actions}
+  </tr>`;
+}
+
+// ── DASH TABLE ────────────────────────────────────────────────
+function renderDashTable() {
+  const q = (document.getElementById('dash-search')?.value||'').toLowerCase();
+  const list = candidats.filter(c=>(c.prenom+' '+c.nom).toLowerCase().includes(q)).slice(0,12);
+  const tbody = document.getElementById('dash-tbody');
+  if (!tbody) return;
+  if (!list.length) {
+    tbody.innerHTML=`<tr><td colspan="9"><div style="text-align:center;padding:2rem;color:var(--grey-400);font-size:.86rem">Aucun candidat. Cliquez sur "Nouveau candidat" pour commencer.</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(c => rowHTML(c, `
+    <td><button class="action-btn" title="Voir la fiche" onclick="openDetail('${c.id}')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button></td>`)).join('');
+}
+
+// ── CAND TABLE ────────────────────────────────────────────────
+function renderCandTable() {
+  const q = (document.getElementById('cand-search')?.value||'').toLowerCase();
+  const f = document.getElementById('cand-filter')?.value||'';
+  const list = candidats.filter(c=>(c.prenom+' '+c.nom).toLowerCase().includes(q)&&(!f||c.statut===f));
+  const tbody = document.getElementById('cand-tbody');
+  if (!tbody) return;
+  if (!list.length) {
+    tbody.innerHTML=`<tr><td colspan="12"><div style="text-align:center;padding:2rem;color:var(--grey-400);font-size:.86rem">Aucun candidat trouvé.</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(c => rowHTML(c, `
+    <td style="white-space:nowrap">
+      <button class="action-btn" title="Voir" onclick="openDetail('${c.id}')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+      <button class="action-btn" title="Modifier" onclick="openEditModal('${c.id}')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
+      </button>
+      <button class="action-btn del" title="Supprimer" onclick="confirmDelete('${c.id}')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
+      </button>
+    </td>`)).join('');
+}
+
+// ── MODAL OPEN ────────────────────────────────────────────────
+function openAddModal() {
+  editingId = null; tmpVersements = []; tmpVersementsAE = [];
+  document.getElementById('modal-title').textContent = 'Nouveau candidat';
+  const ids = ['nom','prenom','tel','localite','recommande','notes'];
+  ids.forEach(id => document.getElementById('f-'+id).value = '');
+  document.getElementById('f-tarif').value = '';
+  document.getElementById('f-commission').value = '';
+  ['f-date-inscription','f-date-visite','f-date-formation','f-code-date','f-conduite-date']
+    .forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-inscription-ok').value = 'oui';
+  document.getElementById('f-statut').value = 'en-cours';
+  document.getElementById('f-code-result').value = 'attente';
+  document.getElementById('f-conduite-result').value = 'attente';
+  renderVersements(); renderVersementsAE(); updatePaieSummary();
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function openEditModal(id) {
+  const c = candidats.find(x=>x.id===id); if (!c) return;
+  editingId = id;
+  tmpVersements = JSON.parse(JSON.stringify(c.versements||[]));
+  tmpVersementsAE = JSON.parse(JSON.stringify(c.versementsAE||[]));
+  document.getElementById('modal-title').textContent = 'Modifier le candidat';
+  document.getElementById('f-nom').value = c.nom||'';
+  document.getElementById('f-prenom').value = c.prenom||'';
+  document.getElementById('f-tel').value = c.tel||'';
+  document.getElementById('f-localite').value = c.localite||'';
+  document.getElementById('f-recommande').value = c.recommande||'';
+  document.getElementById('f-notes').value = c.notes||'';
+  document.getElementById('f-tarif').value = c.tarif||'';
+  document.getElementById('f-commission').value = c.commission||'';
+  document.getElementById('f-date-inscription').value = c.dateInscription||'';
+  document.getElementById('f-date-visite').value = c.dateVisite||'';
+  document.getElementById('f-date-formation').value = c.dateFormation||'';
+  document.getElementById('f-code-date').value = c.codeDate||'';
+  document.getElementById('f-conduite-date').value = c.conduiteDate||'';
+  document.getElementById('f-inscription-ok').value = c.inscriptionOk||'oui';
+  document.getElementById('f-statut').value = c.statut||'en-cours';
+  document.getElementById('f-code-result').value = c.codeResult||'attente';
+  document.getElementById('f-conduite-result').value = c.conduiteResult||'attente';
+  renderVersements(); renderVersementsAE(); updatePaieSummary();
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+
+// ── VERSEMENTS ────────────────────────────────────────────────
+function renderVersements() {
+  document.getElementById('versements-list').innerHTML = tmpVersements.length
+    ? tmpVersements.map((v,i) => `
+        <div class="v-item">
+          <div>
+            <div>${v.label||'Versement'}</div>
+            <div class="v-meta">${v.date||'—'}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="mono" style="color:var(--green)">${fmtE(v.montant)}</span>
+            <button class="action-btn del" onclick="removeVersement(${i})">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>`).join('')
+    : '<div class="empty-msg">Aucun versement enregistré.</div>';
+  updatePaieSummary();
+}
+
+function updatePaieSummary() {
+  const tarif = parseFloat(document.getElementById('f-tarif')?.value||0)||0;
+  const verse = tmpVersements.reduce((s,v)=>s+(parseFloat(v.montant)||0),0);
+  const rp    = Math.max(0, tarif - verse);
+  document.getElementById('ps-tarif').textContent = fmtE(tarif);
+  document.getElementById('ps-verse').textContent = fmtE(verse);
+  document.getElementById('ps-reste').textContent = fmtE(rp);
+  const resteEl = document.getElementById('ps-reste').parentElement;
+  resteEl.className = 'pb ' + (rp > 0 ? 'red' : 'green');
+  updateCommSummary();
+}
+
+function addVersement() {
+  const m = document.getElementById('nv-montant').value;
+  if (!m || parseFloat(m) <= 0) return;
+  tmpVersements.push({
+    id: uid(),
+    date: document.getElementById('nv-date').value,
+    montant: parseFloat(m),
+    label: document.getElementById('nv-label').value || 'Versement'
+  });
+  document.getElementById('nv-date').value = '';
+  document.getElementById('nv-montant').value = '';
+  document.getElementById('nv-label').value = '';
+  renderVersements();
+}
+function removeVersement(i) { tmpVersements.splice(i,1); renderVersements(); }
+
+// ── VERSEMENTS AUTO-ÉCOLE ─────────────────────────────────────
+function renderVersementsAE() {
+  document.getElementById('versements-ae-list').innerHTML = tmpVersementsAE.length
+    ? tmpVersementsAE.map((v,i) => `
+        <div class="v-item">
+          <div>
+            <div>${v.label||'Versement AE'}</div>
+            <div class="v-meta">${v.date||'—'}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="mono" style="color:var(--amber)">${fmtE(v.montant)}</span>
+            <button class="action-btn del" onclick="removeVersementAE(${i})">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>`).join('')
+    : '<div class="empty-msg">Aucun versement à l\'auto-école enregistré.</div>';
+  updateCommSummary();
+}
+
+function updateCommSummary() {
+  const due   = parseFloat(document.getElementById('f-commission')?.value||0)||0;
+  const verse = tmpVersementsAE.reduce((s,v)=>s+(parseFloat(v.montant)||0),0);
+  const rp    = Math.max(0, due - verse);
+  document.getElementById('ps-comm-due').textContent   = fmtE(due);
+  document.getElementById('ps-comm-verse').textContent = fmtE(verse);
+  document.getElementById('ps-comm-reste').textContent = fmtE(rp);
+  const resteEl = document.getElementById('ps-comm-reste').parentElement;
+  resteEl.className = 'pb ' + (rp > 0 ? 'red' : 'green');
+}
+
+function addVersementAE() {
+  const m = document.getElementById('nav-montant').value;
+  if (!m || parseFloat(m) <= 0) return;
+  tmpVersementsAE.push({
+    id: uid(),
+    date: document.getElementById('nav-date').value,
+    montant: parseFloat(m),
+    label: document.getElementById('nav-label').value || 'Versement AE'
+  });
+  document.getElementById('nav-date').value = '';
+  document.getElementById('nav-montant').value = '';
+  document.getElementById('nav-label').value = '';
+  renderVersementsAE();
+}
+function removeVersementAE(i) { tmpVersementsAE.splice(i,1); renderVersementsAE(); }
+
+// ── SAVE ──────────────────────────────────────────────────────
+function saveCandidat() {
+  const nom    = document.getElementById('f-nom').value.trim();
+  const prenom = document.getElementById('f-prenom').value.trim();
+  if (!nom || !prenom) { alert('Le nom et le prénom sont obligatoires.'); return; }
+
+  const data = {
+    nom, prenom,
+    tel:              document.getElementById('f-tel').value.trim(),
+    localite:         document.getElementById('f-localite').value.trim(),
+    recommande:       document.getElementById('f-recommande').value.trim(),
+    notes:            document.getElementById('f-notes').value.trim(),
+    inscriptionOk:    document.getElementById('f-inscription-ok').value,
+    dateInscription:  document.getElementById('f-date-inscription').value,
+    dateVisite:       document.getElementById('f-date-visite').value,
+    dateFormation:    document.getElementById('f-date-formation').value,
+    statut:           document.getElementById('f-statut').value,
+    codeDate:         document.getElementById('f-code-date').value,
+    codeResult:       document.getElementById('f-code-result').value,
+    conduiteDate:     document.getElementById('f-conduite-date').value,
+    conduiteResult:   document.getElementById('f-conduite-result').value,
+    tarif:            parseFloat(document.getElementById('f-tarif').value)||0,
+    commission:       parseFloat(document.getElementById('f-commission').value)||0,
+    versements:       tmpVersements,
+    versementsAE:     tmpVersementsAE,
+  };
+
+  if (editingId) {
+    const idx = candidats.findIndex(c=>c.id===editingId);
+    candidats[idx] = { ...candidats[idx], ...data };
+  } else {
+    candidats.unshift({ id: uid(), createdAt: new Date().toISOString(), ...data });
+  }
+  save(); closeModal(); renderAll();
+}
+
+// ── DETAIL ────────────────────────────────────────────────────
+function openDetail(id) {
+  const c = candidats.find(x=>x.id===id); if (!c) return;
+  const ini = ((c.prenom||'?')[0]+(c.nom||'?')[0]).toUpperCase();
+  const tv = totalVerse(c), rp = reste(c);
+  const totTarif = parseFloat(c.tarif)||0;
+  const pct = totTarif > 0 ? Math.min(100, Math.round(tv/totTarif*100)) : 0;
+
+  document.getElementById('detail-body').innerHTML = `
+    <div class="det-head">
+      <div class="avatar">${ini}</div>
+      <div>
+        <h2>${c.prenom} ${c.nom}</h2>
+        <div class="meta">${c.localite||''}${c.recommande?' · Recommandé par '+c.recommande:''}</div>
+        <div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap">
+          ${bInsc(c.inscriptionOk)}
+          <span class="badge ${c.statut}">${sLabel[c.statut]||c.statut}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-grid">
+      <div class="info-block"><div class="ib-l">📱 Téléphone WhatsApp</div><div class="ib-v">${c.tel||'—'}</div></div>
+      <div class="info-block"><div class="ib-l">📍 Localité</div><div class="ib-v">${c.localite||'—'}</div></div>
+      <div class="info-block"><div class="ib-l">📅 Date d'inscription</div><div class="ib-v">${c.dateInscription||'—'}</div></div>
+      <div class="info-block"><div class="ib-l">🏥 Visite médicale</div><div class="ib-v">${c.dateVisite||'—'}</div></div>
+      <div class="info-block"><div class="ib-l">🎓 Début formation</div><div class="ib-v">${c.dateFormation||'—'}</div></div>
+      <div class="info-block"><div class="ib-l">👤 Recommandé par</div><div class="ib-v">${c.recommande||'—'}</div></div>
+    </div>
+
+    <p class="sec-title">Examens</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.65rem;margin-bottom:.9rem">
+      <div class="info-block">
+        <div class="ib-l">📝 Examen du Code</div>
+        <div class="ib-v">${c.codeDate||'Date non définie'}</div>
+        <div style="margin-top:5px">${bExam(c.codeResult)}</div>
+      </div>
+      <div class="info-block">
+        <div class="ib-l">🚗 Examen de Conduite</div>
+        <div class="ib-v">${c.conduiteDate||'Date non définie'}</div>
+        <div style="margin-top:5px">${bExam(c.conduiteResult)}</div>
+      </div>
+    </div>
+
+    <p class="sec-title">Paiements</p>
+    <div class="paie-sum">
+      <div class="pb blue"><div class="pb-l">Tarif formation</div><div class="pb-v">${fmtE(totTarif)}</div></div>
+      <div class="pb green"><div class="pb-l">Total versé</div><div class="pb-v">${fmtE(tv)}</div></div>
+      <div class="pb ${rp>0?'red':'green'}"><div class="pb-l">Reste à payer</div><div class="pb-v">${fmtE(rp)}</div></div>
+    </div>
+    <div style="background:var(--grey-100);border-radius:8px;padding:.6rem .9rem;margin-bottom:.7rem;font-size:.82rem">
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+        <span>Progression du paiement</span><strong>${pct}%</strong>
+      </div>
+      <div style="background:var(--grey-200);border-radius:99px;height:8px;overflow:hidden">
+        <div style="height:100%;border-radius:99px;background:${pct>=100?'var(--green)':'var(--blue)'};width:${pct}%;transition:width .4s"></div>
+      </div>
+    </div>
+    ${c.commission ? `<div style="background:var(--amber-light);border-radius:8px;padding:.6rem .95rem;font-size:.82rem;margin-bottom:.7rem">💼 Commission reversée à l'auto-école partenaire : <strong>${fmtE(c.commission)}</strong></div>` : ''}
+    <div style="font-size:.78rem;font-weight:600;color:var(--grey-700);margin-bottom:.4rem">Historique des versements du candidat</div>
+    ${(c.versements||[]).length
+      ? (c.versements.map(v=>`<div class="tl-item"><div>${v.label||'Versement'}<div class="tl-meta">${v.date||'—'}</div></div><span class="mono" style="color:var(--green)">${fmtE(v.montant)}</span></div>`).join(''))
+      : '<div class="empty-msg">Aucun versement enregistré.</div>'}
+
+    ${c.commission ? (() => {
+      const totAEverse = (c.versementsAE||[]).reduce((s,v)=>s+(parseFloat(v.montant)||0),0);
+      const resteAE = Math.max(0,(parseFloat(c.commission)||0)-totAEverse);
+      return `
+      <div style="margin-top:.9rem">
+        <div style="font-size:.78rem;font-weight:600;color:var(--grey-700);margin-bottom:.45rem">Versements à l'auto-école partenaire</div>
+        <div class="paie-sum" style="margin-bottom:.6rem">
+          <div class="pb blue"><div class="pb-l">Commission due</div><div class="pb-v">${fmtE(c.commission)}</div></div>
+          <div class="pb amber" style="background:var(--amber-light)"><div class="pb-l" style="color:var(--amber)">Versé AE</div><div class="pb-v" style="color:var(--amber)">${fmtE(totAEverse)}</div></div>
+          <div class="pb ${resteAE>0?'red':'green'}"><div class="pb-l">Reste à verser</div><div class="pb-v">${fmtE(resteAE)}</div></div>
+        </div>
+        ${(c.versementsAE||[]).length
+          ? (c.versementsAE.map(v=>`<div class="tl-item"><div>${v.label||'Versement AE'}<div class="tl-meta">${v.date||'—'}</div></div><span class="mono" style="color:var(--amber)">${fmtE(v.montant)}</span></div>`).join(''))
+          : '<div class="empty-msg">Aucun versement à l\'auto-école enregistré.</div>'}
+      </div>`;
+    })() : ''}
+    ${c.notes ? `<div style="margin-top:.9rem;background:var(--amber-light);border-radius:8px;padding:.75rem .95rem;font-size:.83rem;color:var(--grey-700)"><strong>📌 Notes :</strong> ${c.notes}</div>` : ''}
+  `;
+  document.getElementById('det-edit-btn').onclick = () => { closeDetail(); openEditModal(id); };
+  document.getElementById('detail-overlay').classList.add('open');
+}
+function closeDetail() { document.getElementById('detail-overlay').classList.remove('open'); }
+
+// ── DELETE ────────────────────────────────────────────────────
+function confirmDelete(id) {
+  document.getElementById('confirm-overlay').classList.add('open');
+  document.getElementById('confirm-del-btn').onclick = () => {
+    candidats = candidats.filter(c=>c.id!==id);
+    save(); renderAll();
+    document.getElementById('confirm-overlay').classList.remove('open');
+  };
+}
+
+// ── SERVICE WORKER ────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+
+// ── INSTALL BANNER ────────────────────────────────────────────
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('install-banner').style.display = 'flex';
+});
+function installApp() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(() => {
+    deferredPrompt = null;
+    document.getElementById('install-banner').style.display = 'none';
+  });
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+renderAll();
+</script>
+
+<!-- INSTALL BANNER -->
+<div id="install-banner" style="display:none;position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;border-radius:12px;padding:.75rem 1.2rem;display:none;align-items:center;gap:.9rem;box-shadow:0 8px 30px rgba(0,0,0,.3);z-index:300;font-size:.85rem;max-width:92vw">
+  <span>📲 Installer l'application sur votre appareil ?</span>
+  <button class="btn btn-primary" onclick="installApp()" style="font-size:.82rem;padding:.38rem .85rem">Installer</button>
+  <button class="action-btn" onclick="document.getElementById('install-banner').style.display='none'" style="color:var(--grey-400)">✕</button>
+</div>
+</body>
+</html>
