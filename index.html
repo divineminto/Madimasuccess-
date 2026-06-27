@@ -352,16 +352,39 @@ td{padding:.7rem .85rem;font-size:.83rem;vertical-align:middle}
   </div>
 </div>
 
-<script>
+<script type="module">
+// ── FIREBASE ───────────────────────────────────────────────────
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD8tWZS--5NjBFWu3p2g-5B_SI9mb4zPCQ",
+  authDomain: "autoecolepro-888c0.firebaseapp.com",
+  projectId: "autoecolepro-888c0",
+  storageBucket: "autoecolepro-888c0.firebasestorage.app",
+  messagingSenderId: "539536044453",
+  appId: "1:539536044453:web:76f83222441f32a362b84c"
+};
+const fbApp = initializeApp(firebaseConfig);
+const db    = getFirestore(fbApp);
+const COL   = collection(db, 'candidats');
+
 // ── ÉTAT ──────────────────────────────────────────────────────
-let candidats = JSON.parse(localStorage.getItem('ae_pro_v2') || '[]');
+let candidats = [];
 let editingId = null;
 let tmpVersements = [];
 let tmpVersementsAE = [];
 
-const save = () => localStorage.setItem('ae_pro_v2', JSON.stringify(candidats));
+const save = async (c) => { await setDoc(doc(db,'candidats',c.id), c); };
+const del  = async (id) => { await deleteDoc(doc(db,'candidats',id)); };
 const uid  = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
 const fmtE = v  => (parseFloat(v)||0).toLocaleString('fr-FR') + ' FCFA';
+
+// Écoute temps réel → mise à jour auto sur tous les appareils
+onSnapshot(COL, (snap) => {
+  candidats = snap.docs.map(d=>d.data()).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+  renderAll();
+});
 
 // ── NAV ───────────────────────────────────────────────────────
 function showView(name, btn) {
@@ -646,12 +669,14 @@ function saveCandidat() {
   };
 
   if (editingId) {
-    const idx = candidats.findIndex(c=>c.id===editingId);
-    candidats[idx] = { ...candidats[idx], ...data };
+    const existing = candidats.find(c=>c.id===editingId);
+    const updated = { ...existing, ...data };
+    await save(updated);
   } else {
-    candidats.unshift({ id: uid(), createdAt: new Date().toISOString(), ...data });
+    const nouveau = { id: uid(), createdAt: new Date().toISOString(), ...data };
+    await save(nouveau);
   }
-  save(); closeModal(); renderAll();
+  closeModal();
 }
 
 // ── DETAIL ────────────────────────────────────────────────────
@@ -744,9 +769,8 @@ function closeDetail() { document.getElementById('detail-overlay').classList.rem
 // ── DELETE ────────────────────────────────────────────────────
 function confirmDelete(id) {
   document.getElementById('confirm-overlay').classList.add('open');
-  document.getElementById('confirm-del-btn').onclick = () => {
-    candidats = candidats.filter(c=>c.id!==id);
-    save(); renderAll();
+  document.getElementById('confirm-del-btn').onclick = async () => {
+    await del(id);
     document.getElementById('confirm-overlay').classList.remove('open');
   };
 }
@@ -774,8 +798,25 @@ function installApp() {
   });
 }
 
-// ── INIT ──────────────────────────────────────────────────────
-renderAll();
+// ── INIT (géré par onSnapshot) ────────────────────────────────
+
+// Exposition globale des fonctions (nécessaire avec type="module")
+window.showView = showView;
+window.openAddModal = openAddModal;
+window.openEditModal = openEditModal;
+window.closeModal = closeModal;
+window.saveCandidat = saveCandidat;
+window.openDetail = openDetail;
+window.closeDetail = closeDetail;
+window.confirmDelete = confirmDelete;
+window.addVersement = addVersement;
+window.removeVersement = removeVersement;
+window.addVersementAE = addVersementAE;
+window.removeVersementAE = removeVersementAE;
+window.updatePaieSummary = updatePaieSummary;
+window.installApp = installApp;
+window.renderDashTable = renderDashTable;
+window.renderCandTable = renderCandTable;
 </script>
 
 <!-- INSTALL BANNER -->
